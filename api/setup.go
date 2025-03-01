@@ -16,6 +16,13 @@ func NewServer(port string) *Server {
 	}
 }
 
+func (cfg *apiConfig) initFileServer() http.Handler {
+	fileHandler := http.FileServer(http.Dir("."))
+	stripPref := http.StripPrefix("/app/", fileHandler)
+
+	return cfg.middlewareMetricInc(stripPref)
+}
+
 func (s *Server) Start() error {
 	config := NewApiConfig()
 	log.Infof("Listening to requests on port %s", s.listenAddr)
@@ -25,16 +32,11 @@ func (s *Server) Start() error {
 	http.Handle("/app/", fileHandler)
 
 	// Route handlers
-	http.HandleFunc("GET /healthz", healthCheck)
-	http.HandleFunc("GET /metrics", config.handleReqCount)
-	http.HandleFunc("POST /reset", config.handleReqCountReset)
+	http.HandleFunc("GET /api/healthz", healthCheck)
+
+	// Admin routes
+	http.HandleFunc("GET /admin/metrics", config.handleReqCount)
+	http.HandleFunc("POST /admin/reset", config.handleReqCountReset)
 
 	return http.ListenAndServe(s.listenAddr, nil)
-}
-
-func (cfg *apiConfig) initFileServer() http.Handler {
-	fileHandler := http.FileServer(http.Dir("."))
-	stripPref := http.StripPrefix("/app/", fileHandler)
-
-	return cfg.middlewareMetricInc(stripPref)
 }
