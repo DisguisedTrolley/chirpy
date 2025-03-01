@@ -25,9 +25,9 @@ func (s *Server) Start() error {
 	http.Handle("/app/", fileHandler)
 
 	// Route handlers
-	http.HandleFunc("/healthz", healthCheck)
-	http.HandleFunc("/metrics", config.handleReqCount)
-	http.HandleFunc("/reset", config.handleReqCountReset)
+	http.HandleFunc("GET /healthz", healthCheck)
+	http.HandleFunc("GET /metrics", config.handleReqCount)
+	http.HandleFunc("POST /reset", config.handleReqCountReset)
 
 	return http.ListenAndServe(s.listenAddr, nil)
 }
