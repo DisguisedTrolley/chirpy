@@ -1,25 +1,24 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"flag"
+
+	"github.com/DisguisedTrolley/chirpy/api"
+	"github.com/charmbracelet/log"
 )
 
 const (
 	PORT = "8080"
-	URL  = "http://localhost"
 )
 
 func main() {
-	mux := http.NewServeMux()
+	var port string
+	flag.StringVar(&port, "p", PORT, "Port to run the server on")
 
-	server := &http.Server{
-		Handler: mux,
-		Addr:    URL + ":" + PORT,
-	}
+	server := api.NewServer(port)
 
-	err := server.ListenAndServe()
+	err := server.Start()
 	if err != nil {
-		fmt.Printf("Error: Unable to start server, %s\n", err.Error())
+		log.Errorf("Error: Unable to start server, %s\n", err.Error())
 	}
 }
