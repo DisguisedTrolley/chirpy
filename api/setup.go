@@ -23,12 +23,11 @@ func (cfg *apiConfig) initFileServer() http.Handler {
 	return cfg.middlewareMetricInc(stripPref)
 }
 
-func (s *Server) Start() error {
-	config := NewApiConfig()
+func (s *Server) Start(cfg *apiConfig) error {
 	log.Infof("Listening to requests on port %s", s.listenAddr)
 
 	// File handler
-	fileHandler := config.initFileServer()
+	fileHandler := cfg.initFileServer()
 	http.Handle("/app/", fileHandler)
 
 	// Route handlers
@@ -36,8 +35,8 @@ func (s *Server) Start() error {
 	http.HandleFunc("POST /api/validate_chirp", handleChirps)
 
 	// Admin routes
-	http.HandleFunc("GET /admin/metrics", config.handleReqCount)
-	http.HandleFunc("POST /admin/reset", config.handleReqCountReset)
+	http.HandleFunc("GET /admin/metrics", cfg.handleReqCount)
+	http.HandleFunc("POST /admin/reset", cfg.handleReqCountReset)
 
 	return http.ListenAndServe(s.listenAddr, nil)
 }
