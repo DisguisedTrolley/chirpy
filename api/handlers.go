@@ -1,8 +1,11 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/charmbracelet/log"
 )
 
 func healthCheck(w http.ResponseWriter, req *http.Request) {
@@ -33,4 +36,25 @@ func (cfg *apiConfig) handleReqCountReset(w http.ResponseWriter, req *http.Reque
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(200)
 	w.Write([]byte("OK"))
+}
+
+func handleChirps(w http.ResponseWriter, req *http.Request) {
+	chirp := chirp{}
+	decoder := json.NewDecoder(req.Body)
+
+	err := decoder.Decode(&chirp)
+	if err != nil {
+		log.Errorf("Error decoding parameters: %s", err)
+		responseWithErr(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+
+	if len(chirp.Body) > 140 {
+		responseWithErr(w, http.StatusBadRequest, "Chirp too long")
+		return
+	}
+
+	cleanBody := cleanProfanity(chirp.Body)
+
+	responseWithJSON(w, http.StatusOK, map[string]string{"cleaned_body": cleanBody})
 }

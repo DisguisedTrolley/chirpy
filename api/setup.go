@@ -33,6 +33,7 @@ func (s *Server) Start() error {
 
 	// Route handlers
 	http.HandleFunc("GET /api/healthz", healthCheck)
+	http.HandleFunc("POST /api/validate_chirp", handleChirps)
 
 	// Admin routes
 	http.HandleFunc("GET /admin/metrics", config.handleReqCount)
