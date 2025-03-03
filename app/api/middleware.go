@@ -6,17 +6,20 @@ import (
 	"os"
 	"sync/atomic"
 
-	"github.com/DisguisedTrolley/chirpy/internal/database"
+	"github.com/DisguisedTrolley/chirpy/app/internal/database"
 	"github.com/charmbracelet/log"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	dbQueries      *database.Queries
+	platform       string
 }
 
 func NewApiConfig() *apiConfig {
 	dbUrl := os.Getenv("DB_URL")
+	platform := os.Getenv("PLATFORM")
+
 	db, err := sql.Open("postgres", dbUrl)
 	if err != nil {
 		log.Errorf("Unable to upen db connection: %s", err)
@@ -27,6 +30,7 @@ func NewApiConfig() *apiConfig {
 
 	return &apiConfig{
 		dbQueries: dbQueries,
+		platform:  platform,
 	}
 }
 

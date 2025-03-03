@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 
-	"github.com/DisguisedTrolley/chirpy/api"
+	"github.com/DisguisedTrolley/chirpy/app/api"
 	"github.com/charmbracelet/log"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -13,6 +14,8 @@ const (
 )
 
 func main() {
+	godotenv.Load("../.env")
+
 	var port string
 	flag.StringVar(&port, "p", PORT, "Port to run the server on")
 

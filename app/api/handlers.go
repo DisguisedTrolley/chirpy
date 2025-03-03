@@ -31,6 +31,17 @@ func (cfg *apiConfig) handleReqCount(w http.ResponseWriter, req *http.Request) {
 }
 
 func (cfg *apiConfig) handleReqCountReset(w http.ResponseWriter, req *http.Request) {
+	if cfg.platform != "dev" {
+		responseWithErr(w, http.StatusForbidden, "Action forbidden")
+		return
+	}
+
+	err := cfg.dbQueries.DeleteUsers(req.Context())
+	if err != nil {
+		log.Errorf("Unable to delete users: %s", err)
+		responseWithErr(w, http.StatusInternalServerError, "Unable to delete users")
+		return
+	}
 	cfg.fileserverHits.Store(0)
 
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
@@ -57,4 +68,27 @@ func handleChirps(w http.ResponseWriter, req *http.Request) {
 	cleanBody := cleanProfanity(chirp.Body)
 
 	responseWithJSON(w, http.StatusOK, map[string]string{"cleaned_body": cleanBody})
+}
+
+func (cfg *apiConfig) createUser(w http.ResponseWriter, req *http.Request) {
+	params := struct {
+		Email string `json:"email"`
+	}{}
+	decoder := json.NewDecoder(req.Body)
+
+	err := decoder.Decode(&params)
+	if err != nil {
+		log.Errorf("Unprocessable request: %s", err)
+		responseWithErr(w, http.StatusBadRequest, "Unprocessable request")
+		return
+	}
+
+	resp, err := cfg.dbQueries.CreateUser(req.Context(), params.Email)
+	if err != nil {
+		log.Errorf("Unable to create user: %s", err)
+		responseWithErr(w, http.StatusInternalServerError, "Unable to create user")
+		return
+	}
+
+	responseWithJSON(w, http.StatusCreated, User(resp))
 }
