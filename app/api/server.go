@@ -32,8 +32,8 @@ func (s *Server) Start(cfg *apiConfig) error {
 
 	// Route handlers
 	http.HandleFunc("GET /api/healthz", healthCheck)
-	http.HandleFunc("POST /api/validate_chirp", validateChirp)
 	http.HandleFunc("POST /api/users", cfg.createUser)
+	http.HandleFunc("POST /api/chirps", cfg.addChirp)
 
 	// Admin routes
 	http.HandleFunc("GET /admin/metrics", cfg.getReqCount)

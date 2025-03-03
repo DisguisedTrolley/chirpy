@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/DisguisedTrolley/chirpy/app/internal/database"
 	"github.com/charmbracelet/log"
+	"github.com/google/uuid"
 )
 
 func healthCheck(w http.ResponseWriter, req *http.Request) {
@@ -49,27 +51,14 @@ func (cfg *apiConfig) reset(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func validateChirp(w http.ResponseWriter, req *http.Request) {
-	chirp := struct {
-		Body string `json:"body"`
-	}{}
-	decoder := json.NewDecoder(req.Body)
-
-	err := decoder.Decode(&chirp)
-	if err != nil {
-		log.Errorf("Error decoding parameters: %s", err)
-		responseWithErr(w, http.StatusInternalServerError, "Something went wrong")
-		return
+func validateChirp(body string) (string, error) {
+	if len(body) > 140 {
+		return "", fmt.Errorf("Chirp too long")
 	}
 
-	if len(chirp.Body) > 140 {
-		responseWithErr(w, http.StatusBadRequest, "Chirp too long")
-		return
-	}
+	cleanBody := cleanProfanity(body)
 
-	cleanBody := cleanProfanity(chirp.Body)
-
-	responseWithJSON(w, http.StatusOK, map[string]string{"cleaned_body": cleanBody})
+	return cleanBody, nil
 }
 
 func (cfg *apiConfig) createUser(w http.ResponseWriter, req *http.Request) {
@@ -93,4 +82,40 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, req *http.Request) {
 	}
 
 	responseWithJSON(w, http.StatusCreated, User(resp))
+}
+
+func (cfg *apiConfig) addChirp(w http.ResponseWriter, req *http.Request) {
+	params := struct {
+		Body   string    `json:"body"`
+		UserID uuid.UUID `json:"user_id"`
+	}{}
+
+	// decode req
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&params)
+	if err != nil {
+		log.Errorf("Unable to decode params: %s", err)
+		responseWithErr(w, http.StatusUnprocessableEntity, "Unprocessable request")
+		return
+	}
+
+	// validate chirp
+	cleanedBody, err := validateChirp(params.Body)
+	if err != nil {
+		log.Error("Chirp too long")
+		responseWithErr(w, http.StatusUnprocessableEntity, "Chirp too long")
+		return
+	}
+
+	params.Body = cleanedBody
+
+	// create chirp
+	resp, err := cfg.dbQueries.CreateChirp(req.Context(), database.CreateChirpParams(params))
+	if err != nil {
+		log.Errorf("Error creatingchirp: %s", err)
+		responseWithErr(w, http.StatusInternalServerError, "Error creating chirp")
+		return
+	}
+
+	responseWithJSON(w, http.StatusCreated, Chirp(resp))
 }
