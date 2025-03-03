@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -43,4 +44,14 @@ func cleanProfanity(body string) string {
 	}
 
 	return strings.Join(cleanWords, " ")
+}
+
+func validateChirp(body string) (string, error) {
+	if len(body) > 140 {
+		return "", fmt.Errorf("Chirp too long")
+	}
+
+	cleanBody := cleanProfanity(body)
+
+	return cleanBody, nil
 }
