@@ -6,10 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type chirp struct {
-	Body string `json:"body"`
-}
-
 type User struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`

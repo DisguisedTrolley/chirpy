@@ -14,7 +14,7 @@ func healthCheck(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func (cfg *apiConfig) handleReqCount(w http.ResponseWriter, req *http.Request) {
+func (cfg *apiConfig) getReqCount(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 
@@ -30,7 +30,7 @@ func (cfg *apiConfig) handleReqCount(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(body))
 }
 
-func (cfg *apiConfig) handleReqCountReset(w http.ResponseWriter, req *http.Request) {
+func (cfg *apiConfig) reset(w http.ResponseWriter, req *http.Request) {
 	if cfg.platform != "dev" {
 		responseWithErr(w, http.StatusForbidden, "Action forbidden")
 		return
@@ -42,15 +42,17 @@ func (cfg *apiConfig) handleReqCountReset(w http.ResponseWriter, req *http.Reque
 		responseWithErr(w, http.StatusInternalServerError, "Unable to delete users")
 		return
 	}
-	cfg.fileserverHits.Store(0)
+	cfg.fileserverHits.Store(0) // Reset visit counter
 
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(200)
 	w.Write([]byte("OK"))
 }
 
-func handleChirps(w http.ResponseWriter, req *http.Request) {
-	chirp := chirp{}
+func validateChirp(w http.ResponseWriter, req *http.Request) {
+	chirp := struct {
+		Body string `json:"body"`
+	}{}
 	decoder := json.NewDecoder(req.Body)
 
 	err := decoder.Decode(&chirp)
