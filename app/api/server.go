@@ -37,6 +37,9 @@ func (s *Server) Start(cfg *apiConfig) error {
 	http.HandleFunc("GET /api/chirps", cfg.getChirps)
 	http.HandleFunc("GET /api/chirps/{chirpID}", cfg.getSingleChirp)
 
+	// Auth handlers
+	http.HandleFunc("POST /api/login", cfg.loginUser)
+
 	// Admin routes
 	http.HandleFunc("GET /admin/metrics", cfg.getReqCount)
 	http.HandleFunc("POST /admin/reset", cfg.reset)
