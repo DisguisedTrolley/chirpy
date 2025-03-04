@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -80,29 +79,58 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, req *http.Request) {
 }
 
 func (cfg *apiConfig) refreshToken(w http.ResponseWriter, req *http.Request) {
+	// Get token from header
 	token, err := auth.GetBearerToken(req.Header)
 	if err != nil {
-		fmt.Errorf("Invalid refresh token: %s", err)
+		log.Errorf("Invalid refresh token: %s", err)
 		responseWithErr(w, http.StatusUnauthorized, "Invalid refresh token")
 		return
 	}
 
-	dbTok, err := cfg.dbQueries.GetRefreshToken(req.Context(), token)
+	// Get user refresh token details
+	userDetails, err := cfg.dbQueries.GetRefreshToken(req.Context(), token)
 	if err != nil {
-		fmt.Errorf("Invalid refresh token: %s", err)
+		log.Errorf("Invalid refresh token: %s", err)
 		responseWithErr(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
-	if time.Now().After(dbTok.ExpiresAt) || !dbTok.RevokedAt.Valid {
-		fmt.Errorf("Invalid refresh token: %s", err)
+	// Check if token is expired/revoked
+	if time.Now().After(userDetails.ExpiresAt) || userDetails.RevokedAt.Valid {
+		log.Errorf("token expired")
 		responseWithErr(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	// Create new access token
+	newAccessToken, err := auth.MakeJWT(userDetails.UserID, cfg.jwtSecret, time.Hour)
+	if err != nil {
+		log.Errorf("Unable to create new access token")
+		responseWithErr(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
 
 	responseWithJSON(w, http.StatusOK, struct {
 		Token string `json:"token"`
 	}{
-		Token: token,
+		Token: newAccessToken,
 	})
+}
+
+func (cfg *apiConfig) revokeRefreshToken(w http.ResponseWriter, req *http.Request) {
+	token, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		log.Errorf("Invalid refresh token: %s", err)
+		responseWithErr(w, http.StatusUnauthorized, "Invalid refresh token")
+		return
+	}
+
+	err = cfg.dbQueries.RevokeToken(req.Context(), token)
+	if err != nil {
+		log.Errorf("Invalid refresh token: %s", err)
+		responseWithErr(w, http.StatusUnauthorized, "Invalid refresh token")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
