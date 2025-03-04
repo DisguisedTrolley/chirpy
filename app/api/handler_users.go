@@ -50,3 +50,61 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, req *http.Request) {
 		Email:     resp.Email,
 	})
 }
+
+func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
+	// Get access token from header
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Errorf("Malformed header: %s", err)
+		responseWithErr(w, http.StatusUnauthorized, "Invalid access token")
+		return
+	}
+
+	// Verify access token
+	userId, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		log.Errorf("Invalid jwt: %s", err)
+		responseWithErr(w, http.StatusUnauthorized, "Invalid access token")
+		return
+	}
+
+	// Get details from req body
+	params := struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}{}
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&params)
+	if err != nil {
+		log.Errorf("Invalid params: %s", err)
+		responseWithErr(w, http.StatusUnprocessableEntity, "Missing email or password")
+		return
+	}
+
+	// Get hashed password
+	hashedPw, err := auth.HashPassword(params.Password)
+	if err != nil {
+		log.Errorf("Unable to hash password: %s", err)
+		responseWithErr(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+
+	// Update user details
+	newUserInfo, err := cfg.dbQueries.UpdateUser(r.Context(), database.UpdateUserParams{
+		ID:             userId,
+		Email:          params.Email,
+		HashedPassword: hashedPw,
+	})
+	if err != nil {
+		log.Errorf("Unable to update details: %s", err)
+		responseWithErr(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, User{
+		ID:        newUserInfo.ID,
+		CreatedAt: newUserInfo.CreatedAt,
+		UpdatedAt: newUserInfo.UpdatedAt,
+		Email:     newUserInfo.Email,
+	})
+}
