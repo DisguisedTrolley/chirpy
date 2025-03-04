@@ -60,13 +60,8 @@ func validateChirp(body string) (string, error) {
 	return cleanBody, nil
 }
 
-func (cfg *apiConfig) GenJWTkey(userID uuid.UUID, expIn int) (string, error) {
-	var exp time.Duration
-	if expIn == 0 || time.Duration(expIn)*time.Second > time.Hour {
-		exp = time.Hour
-	} else {
-		exp = time.Duration(expIn) * time.Second
-	}
+func (cfg *apiConfig) GenJWTkey(userID uuid.UUID) (string, error) {
+	exp := time.Hour
 
 	jwt, err := auth.MakeJWT(userID, cfg.jwtSecret, exp)
 	if err != nil {

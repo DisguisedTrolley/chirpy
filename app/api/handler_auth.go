@@ -3,16 +3,17 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/DisguisedTrolley/chirpy/app/internal/auth"
+	"github.com/DisguisedTrolley/chirpy/app/internal/database"
 	"github.com/charmbracelet/log"
 )
 
 func (cfg *apiConfig) loginUser(w http.ResponseWriter, req *http.Request) {
 	params := struct {
-		Email            string `json:"email"`
-		Password         string `json:"password"`
-		ExpiresInSeconds int    `json:"expires_in_seconds"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}{}
 	decoder := json.NewDecoder(req.Body)
 
@@ -40,10 +41,25 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Get jwtSecret
-	jwt, err := cfg.GenJWTkey(user.ID, params.ExpiresInSeconds)
+	// Get access token
+	jwt, err := cfg.GenJWTkey(user.ID)
 	if err != nil {
 		log.Errorf("Error generatign jwt: %s", err)
+		responseWithErr(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+
+	// Get refresh token
+	refreshToken, _ := auth.MakeRefreshToken()
+
+	// Add refresh token to databse
+	err = cfg.dbQueries.CreateRefreshToken(req.Context(), database.CreateRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(60 * 24 * time.Hour),
+	})
+	if err != nil {
+		log.Errorf("Error inserting refresh token")
 		responseWithErr(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
@@ -55,7 +71,8 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, req *http.Request) {
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
 		},
-		Token: jwt,
+		Token:        jwt,
+		RefreshToken: refreshToken,
 	}
 
 	responseWithJSON(w, http.StatusOK, resp)

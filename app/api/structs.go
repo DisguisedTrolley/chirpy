@@ -15,7 +15,8 @@ type User struct {
 
 type Response struct {
 	User
-	Token string `json:"token"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type Chirp struct {
