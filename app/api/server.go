@@ -39,6 +39,7 @@ func (s *Server) Start(cfg *apiConfig) error {
 
 	// Auth handlers
 	http.HandleFunc("POST /api/login", cfg.loginUser)
+	http.HandleFunc("POST /api/refresh", cfg.refreshToken)
 
 	// Admin routes
 	http.HandleFunc("GET /admin/metrics", cfg.getReqCount)
