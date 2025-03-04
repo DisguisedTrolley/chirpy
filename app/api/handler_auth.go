@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -76,4 +77,32 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, req *http.Request) {
 	}
 
 	responseWithJSON(w, http.StatusOK, resp)
+}
+
+func (cfg *apiConfig) refreshToken(w http.ResponseWriter, req *http.Request) {
+	token, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		fmt.Errorf("Invalid refresh token: %s", err)
+		responseWithErr(w, http.StatusUnauthorized, "Invalid refresh token")
+		return
+	}
+
+	dbTok, err := cfg.dbQueries.GetRefreshToken(req.Context(), token)
+	if err != nil {
+		fmt.Errorf("Invalid refresh token: %s", err)
+		responseWithErr(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	if time.Now().After(dbTok.ExpiresAt) || !dbTok.RevokedAt.Valid {
+		fmt.Errorf("Invalid refresh token: %s", err)
+		responseWithErr(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, struct {
+		Token string `json:"token"`
+	}{
+		Token: token,
+	})
 }
