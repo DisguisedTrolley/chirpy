@@ -10,8 +10,9 @@ import (
 
 func (cfg *apiConfig) loginUser(w http.ResponseWriter, req *http.Request) {
 	params := struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email            string `json:"email"`
+		Password         string `json:"password"`
+		ExpiresInSeconds int    `json:"expires_in_seconds"`
 	}{}
 	decoder := json.NewDecoder(req.Body)
 
@@ -39,11 +40,22 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	resp := User{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
+	// Get jwtSecret
+	jwt, err := cfg.GenJWTkey(user.ID, params.ExpiresInSeconds)
+	if err != nil {
+		log.Errorf("Error generatign jwt: %s", err)
+		responseWithErr(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+
+	resp := Response{
+		User: User{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		},
+		Token: jwt,
 	}
 
 	responseWithJSON(w, http.StatusOK, resp)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/DisguisedTrolley/chirpy/app/internal/auth"
 	"github.com/DisguisedTrolley/chirpy/app/internal/database"
 	"github.com/charmbracelet/log"
 	"github.com/google/uuid"
@@ -11,13 +12,26 @@ import (
 
 func (cfg *apiConfig) addChirp(w http.ResponseWriter, req *http.Request) {
 	params := struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}{}
+
+	// Validate auth
+	tokenString, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		log.Errorf("Wrong auth header: %s", err)
+		responseWithErr(w, http.StatusUnauthorized, "Invalid auth status")
+		return
+	}
+	userID, err := auth.ValidateJWT(tokenString, cfg.jwtSecret)
+	if err != nil {
+		log.Errorf("Invalid jwt token: %s", err)
+		responseWithErr(w, http.StatusUnauthorized, "Expired/Invalid JWT token")
+		return
+	}
 
 	// decode req
 	decoder := json.NewDecoder(req.Body)
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		log.Errorf("Unable to decode params: %s", err)
 		responseWithErr(w, http.StatusUnprocessableEntity, "Unprocessable request")
@@ -35,7 +49,10 @@ func (cfg *apiConfig) addChirp(w http.ResponseWriter, req *http.Request) {
 	params.Body = cleanedBody
 
 	// create chirp
-	resp, err := cfg.dbQueries.CreateChirp(req.Context(), database.CreateChirpParams(params))
+	resp, err := cfg.dbQueries.CreateChirp(
+		req.Context(),
+		database.CreateChirpParams{Body: params.Body, UserID: userID},
+	)
 	if err != nil {
 		log.Errorf("Error creatingchirp: %s", err)
 		responseWithErr(w, http.StatusInternalServerError, "Error creating chirp")

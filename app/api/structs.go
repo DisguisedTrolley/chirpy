@@ -13,6 +13,11 @@ type User struct {
 	Email     string    `json:"email"`
 }
 
+type Response struct {
+	User
+	Token string `json:"token"`
+}
+
 type Chirp struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`

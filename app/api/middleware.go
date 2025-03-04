@@ -14,11 +14,13 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	dbQueries      *database.Queries
 	platform       string
+	jwtSecret      string
 }
 
 func NewApiConfig() *apiConfig {
 	dbUrl := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
+	jwtSecret := os.Getenv("JWT_SECRET")
 
 	db, err := sql.Open("postgres", dbUrl)
 	if err != nil {
@@ -31,6 +33,7 @@ func NewApiConfig() *apiConfig {
 	return &apiConfig{
 		dbQueries: dbQueries,
 		platform:  platform,
+		jwtSecret: jwtSecret,
 	}
 }
 

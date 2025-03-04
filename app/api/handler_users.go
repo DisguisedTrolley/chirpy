@@ -43,5 +43,10 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	responseWithJSON(w, http.StatusCreated, User(resp))
+	responseWithJSON(w, http.StatusCreated, User{
+		ID:        resp.ID,
+		CreatedAt: resp.CreatedAt,
+		UpdatedAt: resp.UpdatedAt,
+		Email:     resp.Email,
+	})
 }
