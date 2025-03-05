@@ -120,9 +120,20 @@ func (cfg *apiConfig) upgradeUser(w http.ResponseWriter, r *http.Request) {
 		} `json:"data"`
 	}{}
 
+	// Get api key
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	if apiKey != cfg.polksKey {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	// Decode params
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		log.Errorf("No body: %s", err)
 		return

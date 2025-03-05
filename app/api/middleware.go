@@ -15,12 +15,14 @@ type apiConfig struct {
 	dbQueries      *database.Queries
 	platform       string
 	jwtSecret      string
+	polksKey       string
 }
 
 func NewApiConfig() *apiConfig {
 	dbUrl := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	jwtSecret := os.Getenv("JWT_SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	db, err := sql.Open("postgres", dbUrl)
 	if err != nil {
@@ -34,6 +36,7 @@ func NewApiConfig() *apiConfig {
 		dbQueries: dbQueries,
 		platform:  platform,
 		jwtSecret: jwtSecret,
+		polksKey:  polkaKey,
 	}
 }
 
