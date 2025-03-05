@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 
 	"github.com/DisguisedTrolley/chirpy/app/internal/auth"
 	"github.com/DisguisedTrolley/chirpy/app/internal/database"
@@ -70,11 +71,34 @@ func (cfg *apiConfig) getChirps(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	authorId := req.URL.Query().Get("author_id")
+	sortVal := req.URL.Query().Get("sort")
+
 	// Convert return type to add json tags
 	chirps := []Chirp{}
+	var authorUuid uuid.UUID
+
+	if len(authorId) > 0 {
+		authorUuid, err = uuid.Parse(authorId)
+		if err != nil {
+			log.Errorf("Unable to process author_id: %s", err)
+			responseWithErr(w, http.StatusUnprocessableEntity, "unable to process author_id")
+			return
+		}
+	}
+
 	for _, v := range resp {
+		if len(authorId) > 0 && v.UserID != authorUuid {
+			continue
+		}
 		newChirp := Chirp(v)
 		chirps = append(chirps, newChirp)
+	}
+
+	if sortVal == "desc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+		})
 	}
 
 	w.Header().Add("Content-Type", "application/json")

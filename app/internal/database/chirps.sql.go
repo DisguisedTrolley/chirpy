@@ -42,9 +42,8 @@ func (q *Queries) CreateChirp(ctx context.Context, arg CreateChirpParams) (Chirp
 }
 
 const deleteChirp = `-- name: DeleteChirp :exec
-DELETE FROM chirps
-WHERE user_id = $1 
-AND id = $2
+delete from chirps
+where user_id = $1 and id = $2
 `
 
 type DeleteChirpParams struct {
@@ -58,8 +57,9 @@ func (q *Queries) DeleteChirp(ctx context.Context, arg DeleteChirpParams) error 
 }
 
 const getChirps = `-- name: GetChirps :many
-SELECT id, created_at, updated_at, body, user_id FROM chirps
-ORDER BY created_at ASC
+select id, created_at, updated_at, body, user_id
+from chirps
+order by created_at asc
 `
 
 func (q *Queries) GetChirps(ctx context.Context) ([]Chirp, error) {
@@ -92,8 +92,9 @@ func (q *Queries) GetChirps(ctx context.Context) ([]Chirp, error) {
 }
 
 const getSingleChirp = `-- name: GetSingleChirp :one
-SELECT id, created_at, updated_at, body, user_id FROM chirps
-WHERE id = $1
+select id, created_at, updated_at, body, user_id
+from chirps
+where id = $1
 `
 
 func (q *Queries) GetSingleChirp(ctx context.Context, id uuid.UUID) (Chirp, error) {
