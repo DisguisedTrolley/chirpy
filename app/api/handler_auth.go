@@ -66,10 +66,11 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, req *http.Request) {
 
 	resp := Response{
 		User: User{
-			ID:        user.ID,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			Email:     user.Email,
+			ID:          user.ID,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+			Email:       user.Email,
+			IsChirpyRed: user.IsChirpyRed,
 		},
 		Token:        jwt,
 		RefreshToken: refreshToken,

@@ -7,6 +7,7 @@ import (
 	"github.com/DisguisedTrolley/chirpy/app/internal/auth"
 	"github.com/DisguisedTrolley/chirpy/app/internal/database"
 	"github.com/charmbracelet/log"
+	"github.com/google/uuid"
 )
 
 func (cfg *apiConfig) createUser(w http.ResponseWriter, req *http.Request) {
@@ -44,10 +45,11 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, req *http.Request) {
 	}
 
 	responseWithJSON(w, http.StatusCreated, User{
-		ID:        resp.ID,
-		CreatedAt: resp.CreatedAt,
-		UpdatedAt: resp.UpdatedAt,
-		Email:     resp.Email,
+		ID:          resp.ID,
+		CreatedAt:   resp.CreatedAt,
+		UpdatedAt:   resp.UpdatedAt,
+		Email:       resp.Email,
+		IsChirpyRed: resp.IsChirpyRed,
 	})
 }
 
@@ -102,9 +104,49 @@ func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseWithJSON(w, http.StatusOK, User{
-		ID:        newUserInfo.ID,
-		CreatedAt: newUserInfo.CreatedAt,
-		UpdatedAt: newUserInfo.UpdatedAt,
-		Email:     newUserInfo.Email,
+		ID:          newUserInfo.ID,
+		CreatedAt:   newUserInfo.CreatedAt,
+		UpdatedAt:   newUserInfo.UpdatedAt,
+		Email:       newUserInfo.Email,
+		IsChirpyRed: newUserInfo.IsChirpyRed,
 	})
+}
+
+func (cfg *apiConfig) upgradeUser(w http.ResponseWriter, r *http.Request) {
+	params := struct {
+		Event string `json:"event"`
+		Data  struct {
+			UserID string `json:"user_id"`
+		} `json:"data"`
+	}{}
+
+	// Decode params
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&params)
+	if err != nil {
+		log.Errorf("No body: %s", err)
+		return
+	}
+
+	// Verify event type
+	if params.Event != "user.upgraded" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	// Parse user id to uuid
+	id, err := uuid.Parse(params.Data.UserID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Upgrade user
+	err = cfg.dbQueries.UpgradeUser(r.Context(), id)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

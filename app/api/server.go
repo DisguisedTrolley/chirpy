@@ -44,6 +44,9 @@ func (s *Server) Start(cfg *apiConfig) error {
 	http.HandleFunc("POST /api/refresh", cfg.refreshToken)
 	http.HandleFunc("POST /api/revoke", cfg.revokeRefreshToken)
 
+	// Webhook handler
+	http.HandleFunc("POST /api/polka/webhooks", cfg.upgradeUser)
+
 	// Admin routes
 	http.HandleFunc("GET /admin/metrics", cfg.getReqCount)
 	http.HandleFunc("POST /admin/reset", cfg.reset)
